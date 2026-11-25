@@ -1,0 +1,576 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>التحليل بالتجميع</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700;900&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+<style id="app-css">
+/* Layout concept: graph-paper notebook. A narrow centered column, the board card holds the live algebra, grouping colours carry the method (group 1, group 2, common factor, common bracket). */
+:root{
+  --paper:#f2f6f9; --grid:#dde7ef; --card:#ffffff; --ink:#12263a; --muted:#52677c; --line:#cbd9e5;
+  --accent:#0a6a8a; --accent-ink:#ffffff; --accent-soft:#dff1f7;
+  --ga:#0b7a6a; --ga-bg:#d6f0ea; --gb:#b0420a; --gb-bg:#fde3d2; --cf-bg:#fde7a0; --cf-ink:#553700; --cb:#5640c8;
+  --ok:#14703f; --ok-bg:#d9f2e4; --bad:#b3261e; --bad-bg:#fbe1de;
+  --wa:#25d366; --wa-ink:#052b12; --shadow:0 1px 0 rgba(18,38,58,.04),0 8px 24px -12px rgba(18,38,58,.25);
+  --ff-d:'Cairo','IBM Plex Sans Arabic',system-ui,sans-serif; --ff-b:'IBM Plex Sans Arabic','Cairo',system-ui,sans-serif;
+  direction:rtl;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#0d1722; --grid:#15263a; --card:#14212f; --ink:#e6eef6; --muted:#9bb0c3; --line:#26394e;
+  --accent:#5fc4e4; --accent-ink:#06222d; --accent-soft:#12303d;
+  --ga:#5fd7c0; --ga-bg:#12403a; --gb:#ff9d66; --gb-bg:#4a2410; --cf-bg:#5a4511; --cf-ink:#ffe28f; --cb:#ab9fff;
+  --ok:#72d79d; --ok-bg:#123a26; --bad:#ff8f86; --bad-bg:#4a1a17; --shadow:0 8px 24px -12px rgba(0,0,0,.7); color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --paper:#0d1722; --grid:#15263a; --card:#14212f; --ink:#e6eef6; --muted:#9bb0c3; --line:#26394e;
+  --accent:#5fc4e4; --accent-ink:#06222d; --accent-soft:#12303d;
+  --ga:#5fd7c0; --ga-bg:#12403a; --gb:#ff9d66; --gb-bg:#4a2410; --cf-bg:#5a4511; --cf-ink:#ffe28f; --cb:#ab9fff;
+  --ok:#72d79d; --ok-bg:#123a26; --bad:#ff8f86; --bad-bg:#4a1a17; --shadow:0 8px 24px -12px rgba(0,0,0,.7); color-scheme:dark;}
+
+*{box-sizing:border-box}
+body{margin:0;background-color:var(--paper);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:28px 28px;color:var(--ink);font:400 16px/1.75 var(--ff-b);padding-block:18px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+#root{max-width:1000px;margin-inline:auto}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+h1,h2,h3{font-family:var(--ff-d);line-height:1.3;margin:0;text-wrap:balance}
+p{margin:0}
+.m{unicode-bidi:isolate;direction:rtl;font-family:var(--ff-d);font-weight:700;letter-spacing:.01em}
+bdi{unicode-bidi:isolate}
+
+/* header */
+.top{display:flex;flex-wrap:wrap;gap:16px 24px;align-items:flex-end;justify-content:space-between;padding-block:8px 20px}
+.titleblock{min-width:0;flex:1 1 320px}
+.eyebrow{display:inline-block;background:var(--accent);color:var(--accent-ink);font:700 .95rem var(--ff-d);padding:2px 14px;border-radius:99px;margin-bottom:8px}
+.top h1{font-size:clamp(2rem,6vw,3.2rem);font-weight:900}
+.sub{color:var(--muted);margin-top:4px}
+.tools{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch}
+.tool{display:flex;align-items:center;gap:10px;background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:8px 14px;text-decoration:none;color:var(--ink);box-shadow:var(--shadow);min-width:0}
+.tool:hover{border-color:var(--accent)}
+.tool svg{flex:none;color:var(--accent)}
+.tool span{display:flex;flex-direction:column;line-height:1.35;min-width:0}
+.tool b{font:700 .95rem var(--ff-d)}
+.tool small{color:var(--muted);font-size:.8rem}
+.tool.tg{border-color:var(--accent);background:var(--accent-soft)}
+
+/* gate + cards */
+.card{background:var(--card);border:1.5px solid var(--line);border-radius:18px;padding:clamp(16px,3vw,28px);box-shadow:var(--shadow)}
+.gate{max-width:460px;margin:32px auto 0;display:flex;flex-direction:column;gap:14px;text-align:center}
+.gate h2{font-size:1.5rem}
+.gate .lock{width:56px;height:56px;border-radius:16px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;margin:0 auto}
+.field{display:flex;flex-direction:column;gap:6px;text-align:right}
+.field label{font-weight:600}
+.field input{border:1.5px solid var(--line);background:var(--paper);border-radius:12px;padding:12px 14px;font-size:1.05rem;width:100%}
+.hint{color:var(--muted);font-size:.88rem}
+.msg{min-height:1.6em;font-weight:600;font-size:.95rem}
+.msg.bad{color:var(--bad)} .msg.ok{color:var(--ok)}
+.btn{border:0;border-radius:12px;padding:11px 22px;font:700 1rem var(--ff-d);background:var(--accent);color:var(--accent-ink);transition:transform .12s}
+.btn:hover:not(:disabled){transform:translateY(-1px)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn.ghost:hover{border-color:var(--accent)}
+.btn.wa{background:var(--wa);color:var(--wa-ink);text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+
+/* home */
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:18px;margin-top:8px}
+.choice{text-align:right;background:var(--card);border:1.5px solid var(--line);border-radius:20px;padding:26px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--shadow);transition:transform .15s,border-color .15s}
+.choice:hover{transform:translateY(-3px);border-color:var(--accent)}
+.choice .ic{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.choice h2{font-size:1.8rem}
+.choice p{color:var(--muted)}
+
+/* tabs */
+.tabs{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+.seg{display:flex;background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:4px;gap:4px}
+.seg button{border:0;background:transparent;border-radius:10px;padding:8px 18px;font:700 1rem var(--ff-d);color:var(--muted)}
+.seg button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+
+/* contacts */
+.contacts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px;margin-bottom:18px}
+.contact{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:12px 16px}
+.contact .who{display:flex;flex-direction:column;line-height:1.4;min-width:0}
+.contact .who b{font:700 1rem var(--ff-d)}
+.contact .num{font:600 1.05rem var(--ff-d);user-select:all}
+
+/* lessons */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.chip{display:flex;align-items:center;gap:8px;background:var(--card);border:1.5px solid var(--line);border-radius:99px;padding:6px 14px 6px 10px;font-weight:600;font-size:.92rem}
+.chip i{font:900 .95rem var(--ff-d);font-style:normal;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
+.chip[aria-pressed="true"] i{background:var(--accent-ink);color:var(--accent)}
+.lesson{display:flex;flex-direction:column;gap:16px}
+.lesson h2{font-size:clamp(1.4rem,4vw,1.9rem)}
+.idea{background:var(--accent-soft);border-radius:12px;padding:12px 16px}
+.legend{display:flex;flex-wrap:wrap;gap:8px;font-size:.88rem}
+.legend span,.ga,.gb,.cf,.cb{border-radius:7px;padding:0 .3em;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.legend span{padding:2px 10px;font-weight:600}
+.ga{background:var(--ga-bg);color:var(--ga)}
+.gb{background:var(--gb-bg);color:var(--gb)}
+.cf{background:var(--cf-bg);color:var(--cf-ink)}
+.cb{color:var(--cb);text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:6px}
+.board{background:var(--card);border:2px solid var(--ink);border-radius:16px;padding:16px clamp(14px,3vw,26px);box-shadow:6px 6px 0 var(--accent-soft)}
+.board .lbl{color:var(--muted);font-size:.9rem;font-weight:600}
+.expr{font-size:clamp(1.3rem,4.6vw,2.1rem);line-height:2;padding-block:6px;overflow-wrap:anywhere}
+.steps{display:flex;flex-direction:column;gap:12px;list-style:none;margin:0;padding:0}
+.step{display:grid;grid-template-columns:38px 1fr;gap:12px;align-items:start;animation:rise .35s ease both}
+.step .n{width:38px;height:38px;border-radius:50%;background:var(--ink);color:var(--paper);font:900 1.05rem var(--ff-d);display:grid;place-items:center}
+.step .note{color:var(--muted);font-size:.95rem}
+.step .math{font-size:clamp(1.15rem,4vw,1.7rem);line-height:2;overflow-wrap:anywhere}
+.step.final .math{background:var(--ok-bg);color:var(--ok);border-radius:12px;padding:2px 14px;display:inline-block}
+.step > div{min-width:0}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.empty{color:var(--muted);text-align:center;padding:10px}
+.try{border-top:2px dashed var(--line);padding-top:18px;display:flex;flex-direction:column;gap:14px}
+.try h3{font-size:1.3rem}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:10px}
+.opt{display:flex;align-items:center;gap:10px;text-align:right;background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:10px 14px;min-width:0;font-size:1.1rem}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt .dot{flex:none;width:18px;height:18px;border-radius:50%;border:2px solid var(--line)}
+.opt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.opt[aria-pressed="true"] .dot{border-color:var(--accent);background:radial-gradient(var(--accent) 45%,transparent 50%)}
+.opt.bad{border-color:var(--bad);background:var(--bad-bg);color:var(--bad)}
+.opt.ok{border-color:var(--ok);background:var(--ok-bg);color:var(--ok)}
+.opt .m{overflow-wrap:anywhere;min-width:0}
+
+/* quiz */
+.bar{height:10px;background:var(--line);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .3s}
+.qhead{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-weight:600;margin-bottom:8px}
+.quiz{display:flex;flex-direction:column;gap:16px}
+.score{font:900 clamp(2.4rem,9vw,4rem) var(--ff-d);color:var(--accent)}
+.brk{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:10px}
+.brk div{display:flex;justify-content:space-between;align-items:center;gap:8px;border:1.5px solid var(--line);border-radius:12px;padding:8px 12px;background:var(--card)}
+.brk .full{border-color:var(--ok)}
+.rev{border:1.5px solid var(--line);border-radius:12px;background:var(--card);padding:8px 14px}
+.rev.ok{border-color:var(--ok)} .rev.bad{border-color:var(--bad)}
+.rev summary{cursor:pointer;display:flex;gap:10px;align-items:center;font-size:1.05rem;list-style:none}
+.rev summary::-webkit-details-marker{display:none}
+.mark{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:900;color:#fff}
+.rev.ok .mark{background:var(--ok)} .rev.bad .mark{background:var(--bad)}
+.rev .body{padding-block:10px;display:flex;flex-direction:column;gap:10px}
+.copybox{width:100%;min-height:110px;border:1.5px solid var(--line);border-radius:12px;background:var(--paper);padding:10px;direction:rtl}
+
+/* teacher dialog */
+.overlay{position:fixed;inset:0;z-index:50;background:rgba(8,16,26,.6);display:grid;place-items:center;padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow:auto}
+.dialog{background:var(--card);border-radius:18px;border:1.5px solid var(--line);padding:22px;width:100%;max-width:440px;display:flex;flex-direction:column;gap:12px}
+.dialog h2{font-size:1.4rem}
+
+@media (max-width:520px){.tool{flex:1 1 100%}.step{grid-template-columns:32px 1fr;gap:10px}.step .n{width:32px;height:32px;font-size:.95rem}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+<div id="root"></div>
+<script id="app-js">
+const CFG = {"ph":"033ead77e7e7a503d34e549fb81fc3b9e905716c7a009a5f5ba7e365dc75a10d"};
+const TITLE_FONT = 'https://fonts.googleapis.com/css2?family=Cairo:wght@500;700;900&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap';
+const KEY = 'm925_unlock';
+const WA_KW = 'https://wa.me/96569943365';
+const WA_EG = 'https://wa.me/message/3SK6HSHQFVALJ1';
+const TG = 'https://t.me/+pjyOcLAg1NY3ZTRk';
+document.documentElement.lang = 'ar'; document.documentElement.dir = 'rtl';
+
+/* ---------- helpers ---------- */
+const AR = '٠١٢٣٤٥٦٧٨٩';
+const ar = n => String(n).replace(/\d/g, d => AR[d]);
+const co = k => k === 1 ? '' : ar(k);
+const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $ = s => document.querySelector(s);
+const M = t => `<span class="m">${t}</span>`;
+const ga = t => `<span class="ga">${t}</span>`;
+const gb = t => `<span class="gb">${t}</span>`;
+const cf = t => `<span class="cf">${t}</span>`;
+const cb = t => `<span class="cb">${t}</span>`;
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+const normPw = s => String(s).trim().toLowerCase().replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+async function sha(s) {
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('m9-25|' + normPw(s)));
+  return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join('');
+}
+const takeWrong = (correct, list) => { const out = []; for (const w of list) if (w !== correct && !out.includes(w)) out.push(w); return out.slice(0, 3); };
+
+/* ---------- problem generators (numbers differ from the worksheet) ---------- */
+const PAIRS = [['أ','ب'], ['جـ','د'], ['هـ','و']];
+
+function genGroup(m, P) {
+  const L = P.L || pick(PAIRS), A = L[0], B = L[1];
+  let k1 = P.k1, k2 = P.k2;
+  if (!k1) { k1 = rnd(2, 9); do { k2 = rnd(2, 9); } while (m === 1 ? Math.abs(k2 - k1) < 2 : k2 === k1); }
+  const mc = m === 1 ? '' : ar(m);
+  const f1 = ar(k1) + A, f2 = ar(k2) + B, br = `(س + ${mc}ص)`;
+  const g1 = `${f1} س + ${ar(k1 * m)}${A} ص`, g2 = `${f2} س + ${ar(k2 * m)}${B} ص`;
+  const answer = `${br}(${f1} + ${f2})`;
+  return {
+    expr: `${g1} + ${g2}`, answer,
+    wrong: takeWrong(answer, [`(س - ${mc}ص)(${f1} + ${f2})`, `${br}(${f1} - ${f2})`, `${br}(${ar(k2)}${A} + ${ar(k1)}${B})`, `(س + ${ar(m + 1)}ص)(${f1} + ${f2})`, `(س + ${mc}ص)(${f1} + ${f2} + ${ar(1)})`]),
+    steps: [
+      { note: 'نجمّع الحدود في مجموعتين: الحدّان الأول والثاني معاً، والثالث والرابع معاً.', html: `(${ga(g1)}) + (${gb(g2)})` },
+      { note: 'نأخذ من كل مجموعة عاملاً مشتركاً (رقم + حرف). يظهر القوس نفسه في المجموعتين.', html: `${cf(f1)}${cb(br)} + ${cf(f2)}${cb(br)}` },
+      { note: 'القوس المشترك يتكرر في الحدّين، فنأخذه عاملاً مشتركاً.', html: `${cb(br)}(${cf(f1)} + ${cf(f2)})` }
+    ]
+  };
+}
+const gen1 = (P = {}) => genGroup(P.m || pick([3, 4, 5]), P);
+const gen4 = (P = {}) => genGroup(1, P);
+
+function gen2(P = {}) {
+  const k = P.k || rnd(2, 8), q = P.q || pick([2, 5, 6, 7]), r = P.r || rnd(2, 9);
+  const kq = k * q, rq = r * q, br = `(س - ${ar(q)})`;
+  const answer = `${br}(${co(k)}س - ${ar(r)}ص)`;
+  const t1 = `${co(k)}س² - ${ar(kq)}س`, t2 = `${ar(r)}س ص - ${ar(rq)}ص`;
+  return {
+    expr: `${t1} - ${ar(r)}س ص + ${ar(rq)}ص`, answer,
+    wrong: takeWrong(answer, [`(س + ${ar(q)})(${co(k)}س - ${ar(r)}ص)`, `${br}(${co(k)}س + ${ar(r)}ص)`, `(س - ${ar(r)})(${co(k)}س - ${ar(q)}ص)`, `${br}(${ar(r)}س - ${co(k)}ص)`, `(س + ${ar(q)})(${co(k)}س + ${ar(r)}ص)`]),
+    steps: [
+      { note: 'نجمّع الحدّين الأولين معاً. بين المجموعتين إشارة سالبة، فنأخذ (-) عاملاً مشتركاً من الحدّين الأخيرين فتتغير إشارتاهما.', html: `(${ga(t1)}) - (${gb(t2)})` },
+      { note: 'نأخذ عاملاً مشتركاً من كل مجموعة، فيظهر القوس نفسه.', html: `${cf(co(k) + 'س')}${cb(br)} - ${cf(ar(r) + 'ص')}${cb(br)}` },
+      { note: 'نأخذ القوس المشترك عاملاً مشتركاً.', html: `${cb(br)}(${co(k)}س - ${ar(r)}ص)` }
+    ]
+  };
+}
+
+function gen3(P = {}) {
+  const neg = P.neg !== undefined ? P.neg : Math.random() < .5;
+  const p = P.p || pick([7, 8, 9]), q = P.q || pick([2, 3, 4, 5]), Q = q * q, R = p * Q;
+  const sp = neg ? '-' : '+', op = neg ? '+' : '-', sr = neg ? '+' : '-';
+  const br = `(س ${sp} ${ar(p)})`, sq = `(س - ${ar(q)})(س + ${ar(q)})`;
+  const answer = `${br}${sq}`;
+  return {
+    expr: `س³ ${sp} ${ar(p)}س² - ${ar(Q)}س ${sr} ${ar(R)}`, answer,
+    wrong: takeWrong(answer, [`(س ${op} ${ar(p)})${sq}`, `${br}(س² - ${ar(Q)})`, `${br}(س + ${ar(q)})(س + ${ar(q)})`, `${br}(س - ${ar(q)})(س - ${ar(q)})`]),
+    steps: [
+      { note: 'نجمّع الحدّين الأولين، ونأخذ (-) عاملاً مشتركاً من الحدّين الأخيرين.', html: `(${ga(`س³ ${sp} ${ar(p)}س²`)}) - (${gb(`${ar(Q)}س ${sp} ${ar(R)}`)})` },
+      { note: 'نأخذ عاملاً مشتركاً من كل مجموعة، فيظهر القوس نفسه.', html: `${cf('س²')}${cb(br)} - ${cf(ar(Q))}${cb(br)}` },
+      { note: `نأخذ القوس المشترك. يظهر (س² - ${ar(Q)}) وهو فرق بين مربعين، فيجب إكمال التحليل.`, html: `${cb(br)}(س² - ${ar(Q)})` },
+      { note: `فرق بين مربعين: س² - ${ar(Q)} = (س - ${ar(q)})(س + ${ar(q)}).`, html: `${br}${sq}` }
+    ]
+  };
+}
+
+function gen5(P = {}) {
+  const pq = P.p ? [P.p, P.q] : pick([[3, 4], [2, 5], [5, 7], [3, 7], [4, 7], [5, 6]]);
+  const p = pq[0], q = pq[1], v = P.v || pick([['س','ص'], ['أ','ب'], ['م','ن'], ['جـ','د'], ['هـ','و']]);
+  let g1 = P.g1, g2 = P.g2;
+  if (!g1) { g1 = rnd(2, 9); do { g2 = rnd(2, 9); } while (g2 === g1); }
+  const a = v[0], b = v[1], inner = `${ar(p)}${a} + ${ar(q)}${b}`, sum = g1 + g2;
+  const t1 = `${ar(g1 * p)}${a} + ${ar(g1 * q)}${b}`, t2 = `${ar(g2 * p)}${a} + ${ar(g2 * q)}${b}`;
+  const answer = `(${inner})(${ar(sum)})`;
+  return {
+    expr: `${t1} + ${t2}`, answer,
+    wrong: takeWrong(answer, [`(${inner})(${ar(g1 * g2)})`, `(${ar(q)}${a} + ${ar(p)}${b})(${ar(sum)})`, `(${ar(p)}${a} - ${ar(q)}${b})(${ar(sum)})`, `(${inner})(${ar(g1)})`]),
+    steps: [
+      { note: 'نجمّع الحدّين الأول والثاني، والثالث والرابع.', html: `(${ga(t1)}) + (${gb(t2)})` },
+      { note: `المعاملات كبيرة، فنبحث عن أكبر عدد يقسم المعاملين في كل مجموعة: ${ar(g1)} في الأولى و${ar(g2)} في الثانية.`, html: `${cf(ar(g1))}(${cb(inner)}) + ${cf(ar(g2))}(${cb(inner)})` },
+      { note: 'القوس المشترك يتكرر، فنأخذه عاملاً مشتركاً.', html: `(${cb(inner)})(${cf(ar(g1))} + ${cf(ar(g2))})` },
+      { note: `نجمع العددين داخل القوس الثاني: ${ar(g1)} + ${ar(g2)} = ${ar(sum)}.`, html: `(${inner})(${ar(sum)})` }
+    ]
+  };
+}
+
+function gen6(P = {}) {
+  let p = P.p, q = P.q;
+  if (!p) { do { p = pick([5, 6, 7]); q = pick([2, 4, 5]); } while (p === q); }
+  const k = P.k || rnd(2, 6), Q = q * q, br = `(س - ${ar(p)})`, sq = `(س - ${ar(q)})(س + ${ar(q)})`;
+  const answer = `${ar(k)}${br}${sq}`;
+  return {
+    expr: `${ar(k)}س³ - ${ar(k * p)}س² - ${ar(k * Q)}س + ${ar(k * p * Q)}`, answer,
+    wrong: takeWrong(answer, [`${br}${sq}`, `${ar(k)}${br}(س² - ${ar(Q)})`, `${ar(k)}(س + ${ar(p)})${sq}`, `${ar(k)}${br}(س - ${ar(q)})(س - ${ar(q)})`]),
+    steps: [
+      { note: 'نجمّع الحدّين الأولين، ونأخذ (-) عاملاً مشتركاً من الحدّين الأخيرين.', html: `(${ga(`${ar(k)}س³ - ${ar(k * p)}س²`)}) - (${gb(`${ar(k * Q)}س - ${ar(k * p * Q)}`)})` },
+      { note: 'نأخذ عاملاً مشتركاً من كل مجموعة، فيظهر القوس نفسه.', html: `${cf(ar(k) + 'س²')}${cb(br)} - ${cf(ar(k * Q))}${cb(br)}` },
+      { note: 'نأخذ القوس المشترك عاملاً مشتركاً.', html: `${cb(br)}(${ar(k)}س² - ${ar(k * Q)})` },
+      { note: `نأخذ العامل المشترك ${ar(k)} من القوس الثاني، فيظهر فرق بين مربعين.`, html: `${cf(ar(k))}${cb(br)}(س² - ${ar(Q)})` },
+      { note: `نحلّل الفرق بين المربعين: س² - ${ar(Q)} = (س - ${ar(q)})(س + ${ar(q)}).`, html: `${ar(k)}${br}${sq}` }
+    ]
+  };
+}
+
+const LESSONS = [
+  { name: 'التجميع مع أخذ عامل مشترك حرفي ورقمي', short: 'عامل مشترك حرفي ورقمي', idea: 'أخذ عامل مشترك (رقم + حرف) من كل حدين، ثم ملاحظة القوس المشترك.', gen: gen1, first: { k1: 3, k2: 5, m: 3, L: ['أ','ب'] } },
+  { name: 'التجميع مع تغيير الإشارة (أخذ سالب)', short: 'تغيير الإشارة', idea: 'عند وجود إشارة سالبة بين المجموعتين، نأخذ (-) عاملاً مشتركاً لتظهر نفس القوس.', gen: gen2, first: { k: 2, q: 5, r: 3 } },
+  { name: 'التجميع ثم فرق بين مربعين (تحليل تام)', short: 'فرق بين مربعين', idea: 'بعد التجميع، يظهر قوس (س² - عدد) وهو فرق بين مربعين، فيجب إكمال التحليل.', gen: gen3, first: { neg: true, p: 7, q: 2 } },
+  { name: 'التجميع مع متغيرات متعددة وعوامل مشتركة مركبة', short: 'متغيرات متعددة', idea: 'حدوديات رباعية فيها أكثر من متغير، وعامل مشترك قد يكون (رقم × حرف) أو (حرف × حرف).', gen: gen4, first: { k1: 2, k2: 5, L: ['جـ','د'] } },
+  { name: 'التجميع مع معاملات أكبر وأرقام أولية', short: 'معاملات أكبر', idea: 'معاملات الحدود ليست صغيرة، وقد تكون أعداداً أولية، فيحتاج الطالب للتفكير في العامل المشترك المناسب.', gen: gen5, first: { p: 3, q: 4, g1: 2, g2: 5, v: ['م','ن'] } },
+  { name: 'تحديات متقدمة (تجميع + فرق بين مربعين + عامل مشترك)', short: 'تحديات متقدمة', idea: 'مسائل تحتاج أكثر من خطوة: تجميع، ثم أخذ عامل مشترك، ثم فرق بين مربعين.', gen: gen6, first: { k: 3, p: 6, q: 2 } }
+];
+const withOpts = p => { p.opts = shuffle([p.answer].concat(p.wrong)); return p; };
+
+/* ---------- state ---------- */
+const state = {
+  unlocked: lsGet(KEY) === CFG.ph, view: null, lesson: 0, teacher: false, focus: null,
+  L: LESSONS.map(l => ({ cur: l.gen(l.first), shown: 0, tp: withOpts(l.gen()), wrongPicks: [], done: false, showSol: false })),
+  quiz: { phase: 'intro', name: '', qs: [], i: 0, answers: [], copy: null }
+};
+
+/* ---------- icons ---------- */
+const svg = (p, s = 22) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+const IC = {
+  key: svg('<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3M14 9l2 2"/>'),
+  tg: svg('<path d="M21.5 3.5L2.5 10.8l6.3 2.4 2.4 6.3 3.2-4.2 4.6 3.4z"/><path d="M8.8 13.2l12.7-9.7"/>', 24),
+  wa: svg('<path d="M3 21l1.6-4.6A8.5 8.5 0 1 1 8 19.5z"/><path d="M9 9.5c0 3 2.5 5.5 5.5 5.5l1-1.5-2-1-1 .8c-.8-.4-1.6-1.2-2-2l.8-1-1-2z"/>', 20),
+  steps: svg('<path d="M4 6h16M4 12h10M4 18h6"/><path d="M17 15l2 2 3-4"/>', 28),
+  quiz: svg('<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 9l1.5 1.5L12 8M8 15l1.5 1.5L12 14M14 10h3M14 16h3"/>', 28)
+};
+
+/* ---------- views ---------- */
+function header() {
+  return `<header class="top">
+    <div class="titleblock">
+      <p class="eyebrow">الصف التاسع 9 بند <bdi dir="ltr">2-5</bdi></p>
+      <h1>التحليل بالتجميع</h1>
+      <p class="sub">تحليل كثيرات الحدود ذات الأربعة حدود، خطوة بخطوة</p>
+    </div>
+    <div class="tools">
+      <button class="tool" data-act="teacher" aria-label="إعدادات المعلم: تغيير كلمة السر" title="للمعلم: تغيير كلمة السر">${IC.key}<span><b>كلمة السر</b><small>للمعلم</small></span></button>
+      <a class="tool tg" href="${TG}" target="_blank" rel="noopener">${IC.tg}<span><b>انضم هنا للمزيد من الملفات</b><small>مهندسة الرياضيات <bdi dir="ltr">+96569943365</bdi></small></span></a>
+    </div>
+  </header>`;
+}
+
+function contact(kind) {
+  const kw = kind === 'kw';
+  return `<div class="contact"><div class="who"><b>مهندسة الرياضيات</b><span class="num"><bdi dir="ltr">${kw ? '+96569943365' : '+٢٠١٠٢٣٠٨٣٢٢٧'}</bdi></span></div>
+    <a class="btn wa" href="${kw ? WA_KW : WA_EG}" target="_blank" rel="noopener">${IC.wa}للتواصل اضغط هنا</a></div>`;
+}
+
+function gate() {
+  return `<section class="card gate" aria-labelledby="gt">
+    <div class="lock">${svg('<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>', 28)}</div>
+    <h2 id="gt">أدخل كلمة السر للبدء</h2>
+    <p class="hint">كلمة السر يعطيها لك المعلم. يمكنك كتابة الأرقام بالهندية أو بالإنجليزية.</p>
+    <div class="field"><label for="pw">كلمة السر</label><input id="pw" type="password" autocomplete="off"></div>
+    <p id="gmsg" class="msg bad" role="status"></p>
+    <button class="btn" data-act="unlock">دخول</button>
+  </section>`;
+}
+
+function home() {
+  return `<div class="choices">
+    <button class="choice" data-act="go" data-v="explain"><span class="ic">${IC.steps}</span><h2>شرح تفاعلي</h2><p>شاهد حل المسائل خطوة بخطوة، ثم جرّب بنفسك بأرقام جديدة في كل مرة.</p></button>
+    <button class="choice" data-act="go" data-v="quiz"><span class="ic">${IC.quiz}</span><h2>الاختبار</h2><p>١٢ سؤالاً من أفكار الدرس بأرقام مختلفة. يجب كتابة اسمك قبل البدء.</p></button>
+  </div>`;
+}
+
+function tabs() {
+  const t = (v, n) => `<button role="tab" aria-selected="${state.view === v}" data-act="go" data-v="${v}">${n}</button>`;
+  return `<nav class="tabs"><button class="btn ghost" data-act="home">→ الرئيسية</button><div class="seg" role="tablist">${t('explain', 'شرح تفاعلي')}${t('quiz', 'الاختبار')}</div></nav>`;
+}
+
+function optionsHtml(p, st, act, extra) {
+  return `<div class="opts">${p.opts.map((o, i) => {
+    let cls = '', dis = '';
+    if (extra && extra.wrong && extra.wrong.includes(o)) { cls = 'bad'; dis = 'disabled'; }
+    if (extra && extra.done) { dis = 'disabled'; if (o === p.answer) cls = 'ok'; }
+    const sel = extra && extra.sel === i;
+    return `<button class="opt ${cls}" ${dis} data-act="${act}" data-o="${i}" aria-pressed="${!!sel}"><span class="dot"></span>${M(o)}</button>`;
+  }).join('')}</div>`;
+}
+
+function stepsHtml(p, n) {
+  if (n === 0) return `<p class="empty">اضغط «الخطوة التالية» لبدء الحل.</p>`;
+  return `<ol class="steps">${p.steps.slice(0, n).map((s, i) => `<li class="step ${i === p.steps.length - 1 ? 'final' : ''}"><span class="n">${ar(i + 1)}</span><div><p class="note">${s.note}</p><div class="math">${M(s.html)}</div></div></li>`).join('')}</ol>`;
+}
+
+function explain() {
+  const i = state.lesson, les = LESSONS[i], S = state.L[i], p = S.cur, done = S.shown >= p.steps.length;
+  const chips = LESSONS.map((l, j) => `<button class="chip" data-act="lesson" data-i="${j}" aria-pressed="${j === i}"><i>${ar(j + 1)}</i>${l.short}</button>`).join('');
+  const tp = S.tp;
+  return `<div class="contacts">${contact('kw')}${contact('eg')}</div>
+  <div class="chips" role="group" aria-label="أقسام الدرس">${chips}</div>
+  <section class="lesson card">
+    <h2>القسم ${ar(i + 1)}: ${les.name}</h2>
+    <p class="idea"><b>الفكرة:</b> ${les.idea}</p>
+    <div class="legend" aria-label="دليل الألوان"><span class="ga">المجموعة الأولى</span><span class="gb">المجموعة الثانية</span><span class="cf">العامل المشترك</span><span class="cb">القوس المشترك</span></div>
+    <div class="board"><p class="lbl">حلّل كثيرة الحدود التالية:</p><div class="expr">${M(p.expr)}</div></div>
+    ${stepsHtml(p, S.shown)}
+    <div class="row">
+      <button class="btn" id="btnNext" data-act="next" ${done ? 'disabled' : ''}>الخطوة التالية</button>
+      <button class="btn ghost" data-act="all" ${done ? 'disabled' : ''}>أظهر الحل كاملاً</button>
+      <button class="btn ghost" data-act="reset" ${S.shown === 0 ? 'disabled' : ''}>أعد الخطوات</button>
+      <button class="btn ghost" data-act="newEx">مثال جديد بأرقام أخرى</button>
+    </div>
+    <div class="try">
+      <h3>جرّب بنفسك</h3>
+      <div class="board"><p class="lbl">اختر التحليل الصحيح:</p><div class="expr">${M(tp.expr)}</div></div>
+      ${optionsHtml(tp, S, 'tryPick', { wrong: S.wrongPicks, done: S.done })}
+      <p class="msg ${S.done ? 'ok' : 'bad'}" role="status">${S.done ? 'إجابة صحيحة، أحسنت!' : (S.wrongPicks.length ? 'ليست الإجابة الصحيحة، حاول مرة أخرى.' : '')}</p>
+      ${S.showSol ? stepsHtml(tp, tp.steps.length) : ''}
+      <div class="row">
+        <button class="btn ghost" data-act="sol">${S.showSol ? 'أخفِ الحل' : 'اعرض الحل'}</button>
+        <button class="btn" data-act="newTry">سؤال جديد</button>
+      </div>
+    </div>
+  </section>`;
+}
+
+function buildQuiz() {
+  const qs = [];
+  LESSONS.forEach((l, i) => {
+    const a = l.gen(); let b = l.gen(), guard = 0;
+    while (b.expr === a.expr && guard++ < 20) b = l.gen();
+    qs.push(Object.assign(withOpts(a), { sec: i }), Object.assign(withOpts(b), { sec: i }));
+  });
+  return qs;
+}
+
+function quiz() {
+  const Q = state.quiz;
+  if (Q.phase === 'intro') {
+    return `<div class="quiz">${contact('eg')}
+    <section class="card" style="display:flex;flex-direction:column;gap:14px">
+      <h2>الاختبار</h2>
+      <p>١٢ سؤالاً، سؤالان من كل قسم، بأرقام مختلفة عن الشرح. لكل سؤال إجابة واحدة صحيحة، ولا يمكن الرجوع للسؤال السابق.</p>
+      <div class="field"><label for="studentName">اسم الطالب (إجباري)</label><input id="studentName" type="text" autocomplete="off" value="${esc(Q.name)}" placeholder="اكتب اسمك الكامل"></div>
+      <p class="hint">لا يبدأ الاختبار قبل كتابة الاسم.</p>
+      <div class="row"><button class="btn" id="btnStart" data-act="toConfirm" ${Q.name.trim().length < 3 ? 'disabled' : ''}>ابدأ الاختبار</button></div>
+    </section></div>`;
+  }
+  if (Q.phase === 'confirm') {
+    return `<section class="card" style="display:flex;flex-direction:column;gap:14px;max-width:560px">
+      <h2>تأكيد الاسم</h2>
+      <p>هل اسمك: <b style="font-size:1.3rem">${esc(Q.name.trim())}</b> ؟</p>
+      <p class="hint">سيظهر هذا الاسم في نتيجة الاختبار، ولا يمكن تغييره بعد البدء.</p>
+      <div class="row"><button class="btn" data-act="begin">نعم، ابدأ الاختبار</button><button class="btn ghost" data-act="editName">تعديل الاسم</button></div>
+    </section>`;
+  }
+  if (Q.phase === 'run') {
+    const q = Q.qs[Q.i], sel = Q.answers[Q.i], last = Q.i === Q.qs.length - 1;
+    return `<section class="card quiz">
+      <div><div class="qhead"><span>السؤال ${ar(Q.i + 1)} من ${ar(Q.qs.length)}</span><span>${esc(Q.name.trim())}</span></div><div class="bar"><i style="width:${(Q.i / Q.qs.length) * 100}%"></i></div></div>
+      <div class="board"><p class="lbl">حلّل كثيرة الحدود التالية تحليلاً تاماً:</p><div class="expr">${M(q.expr)}</div></div>
+      ${optionsHtml(q, null, 'qpick', { sel })}
+      <div class="row"><button class="btn" id="btnQ" data-act="qnext" ${sel === undefined ? 'disabled' : ''}>${last ? 'إنهاء الاختبار' : 'السؤال التالي'}</button></div>
+    </section>`;
+  }
+  const total = Q.qs.length;
+  const per = LESSONS.map(() => 0); let score = 0;
+  Q.qs.forEach((q, i) => { if (q.opts[Q.answers[i]] === q.answer) { score++; per[q.sec]++; } });
+  const msg = score >= 11 ? 'ممتاز، أتقنت الدرس.' : score >= 9 ? 'جيد جداً، راجع الأخطاء القليلة.' : score >= 6 ? 'جيد، راجع الأقسام المعلّمة ثم أعد المحاولة.' : 'راجع الشرح التفاعلي ثم أعد الاختبار.';
+  const brk = per.map((s, i) => `<div class="${s === 2 ? 'full' : ''}"><span>القسم ${ar(i + 1)}: ${LESSONS[i].short}</span><span><b>${ar(s)}</b> من ${ar(2)}${s < 2 ? ` <button class="btn ghost" style="padding:2px 10px;font-size:.85rem" data-act="review" data-i="${i}">راجع</button>` : ''}</span></div>`).join('');
+  const rev = Q.qs.map((q, i) => {
+    const ok = q.opts[Q.answers[i]] === q.answer;
+    return `<details class="rev ${ok ? 'ok' : 'bad'}"><summary><span class="mark">${ok ? '✓' : '✗'}</span>${M(q.expr)}</summary><div class="body">
+      <p>إجابتك: ${M(q.opts[Q.answers[i]])}</p>${ok ? '' : `<p>الإجابة الصحيحة: ${M(q.answer)}</p>`}${stepsHtml(q, q.steps.length)}</div></details>`;
+  }).join('');
+  return `<div class="quiz">
+    <section class="card" style="display:flex;flex-direction:column;gap:12px">
+      <p class="hint">نتيجة الطالب</p><h2>${esc(Q.name.trim())}</h2>
+      <p class="score">${ar(score)} <span style="font-size:.4em;color:var(--muted)">من ${ar(total)}</span></p>
+      <p><b>${msg}</b></p>
+      <div class="brk">${brk}</div>
+      <div class="row"><button class="btn" data-act="copyRes">نسخ النتيجة</button><button class="btn ghost" data-act="again">اختبار جديد بأرقام أخرى</button></div>
+      ${Q.copy === 'ok' ? '<p class="msg ok" role="status">تم نسخ النتيجة.</p>' : ''}
+      ${Q.copy === 'fail' ? `<p class="msg bad" role="status">تعذر النسخ تلقائياً، انسخ النص التالي:</p><textarea class="copybox" id="copybox" readonly>${esc(resultText(score, total))}</textarea>` : ''}
+    </section>
+    <h3>مراجعة الإجابات</h3>${rev}
+    ${contact('eg')}
+  </div>`;
+}
+function resultText(score, total) {
+  return `نتيجة اختبار الصف التاسع 9 بند 2-5 (التحليل بالتجميع)\nالاسم: ${state.quiz.name.trim()}\nالدرجة: ${ar(score)} من ${ar(total)}`;
+}
+
+function modal() {
+  return `<div class="overlay" data-act="closeOverlay"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="tTitle">
+    <h2 id="tTitle">إعدادات المعلم</h2>
+    <p class="hint">غيّر كلمة السر التي يدخل بها الطلاب. تُطبَّق على جميع الطلاب فور الحفظ. يعمل الحفظ عند فتح الصفحة من حساب المعلم.</p>
+    <div class="field"><label for="tCur">كلمة السر الحالية</label><input id="tCur" type="password" autocomplete="off"></div>
+    <div class="field"><label for="tNew">كلمة السر الجديدة</label><input id="tNew" type="password" autocomplete="off"></div>
+    <div class="field"><label for="tNew2">تأكيد كلمة السر الجديدة</label><input id="tNew2" type="password" autocomplete="off"></div>
+    <p id="tmsg" class="msg" role="status"></p>
+    <div class="row"><button class="btn" id="btnSave" data-act="saveTeacher">حفظ وتطبيق على الطلاب</button><button class="btn ghost" data-act="closeTeacher">إلغاء</button></div>
+  </div></div>`;
+}
+
+function render() {
+  const main = !state.unlocked ? gate() : (!state.view ? home() : tabs() + (state.view === 'explain' ? explain() : quiz()));
+  $('#root').innerHTML = header() + main + (state.teacher ? modal() : '');
+  if (state.focus) { const el = document.getElementById(state.focus); if (el) el.focus(); state.focus = null; }
+}
+const scrollUp = () => window.scrollTo(0, 0);
+const say = (id, t, c) => { const el = document.getElementById(id); if (el) { el.textContent = t; el.className = 'msg ' + (c || 'bad'); } };
+
+/* ---------- teacher: change the shared password by republishing ---------- */
+function buildDoc(newHash) {
+  const reset = (document.head.querySelector('style') || {}).textContent;
+  const css = document.getElementById('app-css').textContent;
+  let js = document.getElementById('app-js').textContent;
+  js = js.replace(/const CFG = \{[^\n]*\};/, () => 'const CFG = {"ph":"' + newHash + '"};');
+  if (!reset || js.indexOf(newHash) < 0) throw new Error('build');
+  return '<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>' + reset + '</style></head><body>' +
+    '<title>' + document.title + '</title><meta name="claude:viewport-fit-sides" content="cover"><link rel="stylesheet" href="' + TITLE_FONT + '"><style id="app-css">' + css + '</style><div id="root"></div><script id="app-js">' + js + '<\/script></body></html>';
+}
+async function saveTeacher() {
+  const cur = $('#tCur').value, n1 = $('#tNew').value, n2 = $('#tNew2').value, btn = $('#btnSave');
+  if (!cur || !n1 || !n2) return say('tmsg', 'أكمل جميع الحقول.');
+  if (await sha(cur) !== CFG.ph) return say('tmsg', 'كلمة السر الحالية غير صحيحة.');
+  if (normPw(n1).length < 4) return say('tmsg', 'كلمة السر الجديدة يجب ألا تقل عن ٤ أحرف.');
+  if (normPw(n1) !== normPw(n2)) return say('tmsg', 'تأكيد كلمة السر غير مطابق.');
+  const nh = await sha(n1);
+  if (nh === CFG.ph) return say('tmsg', 'كلمة السر الجديدة مطابقة للحالية.');
+  let art = null;
+  try { art = window.claude && await window.claude.use('artifact'); } catch (e) {}
+  if (!art) return say('tmsg', 'حفظ كلمة السر غير متاح في هذا العرض. افتح الصفحة من حساب المعلم.');
+  let doc; try { doc = buildDoc(nh); } catch (e) { return say('tmsg', 'تعذر تجهيز الصفحة للحفظ.'); }
+  const prev = lsGet(KEY); lsSet(KEY, nh); btn.disabled = true; say('tmsg', 'جارٍ الحفظ...', 'ok');
+  try { await art.publish(doc); say('tmsg', 'تم الحفظ. ستتحدّث الصفحة بكلمة السر الجديدة.', 'ok'); }
+  catch (err) {
+    if (prev === null) { try { localStorage.removeItem(KEY); } catch (e) {} } else lsSet(KEY, prev);
+    btn.disabled = false;
+    const c = err && err.code;
+    say('tmsg', c === 'conflict' ? 'تم تحديث الصفحة من مكان آخر. أعد المحاولة بعد تحديثها.' : (c === 'not_granted' || c === 'not_writer') ? 'تغيير كلمة السر متاح للمعلم فقط عند فتح الصفحة من حسابه.' : 'تعذر الحفظ. حاول مرة أخرى.');
+  }
+}
+
+/* ---------- events ---------- */
+async function act(a, t, e) {
+  const S = state.L[state.lesson];
+  switch (a) {
+    case 'unlock': {
+      const v = ($('#pw') || {}).value || '';
+      if (!v.trim()) return say('gmsg', 'اكتب كلمة السر.');
+      if (await sha(v) === CFG.ph) { lsSet(KEY, CFG.ph); state.unlocked = true; render(); } else say('gmsg', 'كلمة السر غير صحيحة. اطلبها من معلمتك.');
+      return;
+    }
+    case 'teacher': state.teacher = true; render(); state.focus = 'tCur'; setTimeout(() => { const el = $('#tCur'); if (el) el.focus(); }, 0); return;
+    case 'closeTeacher': state.teacher = false; render(); return;
+    case 'closeOverlay': if (e.target === t) { state.teacher = false; render(); } return;
+    case 'saveTeacher': return saveTeacher();
+    case 'go': state.view = t.dataset.v; render(); scrollUp(); return;
+    case 'home': state.view = null; render(); scrollUp(); return;
+    case 'lesson': state.lesson = +t.dataset.i; render(); return;
+    case 'next': S.shown = Math.min(S.cur.steps.length, S.shown + 1); state.focus = 'btnNext'; render(); return;
+    case 'all': S.shown = S.cur.steps.length; render(); return;
+    case 'reset': S.shown = 0; render(); return;
+    case 'newEx': S.cur = LESSONS[state.lesson].gen(); S.shown = 0; render(); return;
+    case 'tryPick': { const o = S.tp.opts[+t.dataset.o]; if (o === S.tp.answer) S.done = true; else if (!S.wrongPicks.includes(o)) S.wrongPicks.push(o); render(); return; }
+    case 'sol': S.showSol = !S.showSol; render(); return;
+    case 'newTry': S.tp = withOpts(LESSONS[state.lesson].gen()); S.wrongPicks = []; S.done = false; S.showSol = false; render(); return;
+    case 'toConfirm': if (state.quiz.name.trim().length >= 3) { state.quiz.phase = 'confirm'; render(); scrollUp(); } return;
+    case 'editName': state.quiz.phase = 'intro'; render(); return;
+    case 'begin': Object.assign(state.quiz, { phase: 'run', qs: buildQuiz(), i: 0, answers: [], copy: null }); render(); scrollUp(); return;
+    case 'qpick': state.quiz.answers[state.quiz.i] = +t.dataset.o; state.focus = 'btnQ'; render(); return;
+    case 'qnext': if (state.quiz.answers[state.quiz.i] === undefined) return; if (state.quiz.i < state.quiz.qs.length - 1) state.quiz.i++; else state.quiz.phase = 'done'; render(); scrollUp(); return;
+    case 'again': Object.assign(state.quiz, { phase: 'intro', qs: [], i: 0, answers: [], copy: null }); render(); scrollUp(); return;
+    case 'review': state.lesson = +t.dataset.i; state.view = 'explain'; render(); scrollUp(); return;
+    case 'copyRes': {
+      const Q = state.quiz; let score = 0; Q.qs.forEach((q, i) => { if (q.opts[Q.answers[i]] === q.answer) score++; });
+      try { await navigator.clipboard.writeText(resultText(score, Q.qs.length)); Q.copy = 'ok'; } catch (err) { Q.copy = 'fail'; }
+      render(); const bx = $('#copybox'); if (bx) { bx.focus(); bx.select(); } return;
+    }
+  }
+}
+document.addEventListener('click', e => { const t = e.target.closest('[data-act]'); if (t) act(t.dataset.act, t, e); });
+document.addEventListener('input', e => {
+  if (e.target.id === 'studentName') { state.quiz.name = e.target.value; const b = $('#btnStart'); if (b) b.disabled = state.quiz.name.trim().length < 3; }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && state.teacher) { state.teacher = false; render(); return; }
+  if (e.key !== 'Enter') return;
+  const id = e.target.id;
+  if (id === 'pw') act('unlock'); else if (id === 'tCur' || id === 'tNew' || id === 'tNew2') act('saveTeacher'); else if (id === 'studentName') act('toConfirm');
+});
+render();
+</script>
+
+</body></html>
